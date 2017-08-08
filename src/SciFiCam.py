@@ -17,7 +17,7 @@ from Stencil import Stencil
 class SciFiCam(object):
 	def __init__(self):
 		# Setting directories
-		self.dir				= os.getenv('SCI_PI_CAM_DIR', '/home/pi/sci-fi-cam/')
+		self.dir				= os.getenv('SCI_PI_CAM_DIR', '/home/pi/SciFiCam/')
 		self.settingsFile		= os.path.join(self.dir, "settings.py")
 		self.picDir				= os.path.join(self.dir, "pics")
 
@@ -34,7 +34,8 @@ class SciFiCam(object):
 		self.renderer			= self.camera.start_preview()
 		self.camera.preview.alpha = 128
 		self.blank				= np.ones((720, 1280, 3), dtype=np.uint8) * 255
-
+		self.UIOverlay			= self.camera.add_overlay(np.getbuffer(np.zeros((720, 1280, 3), dtype=np.uint8)), alpha = 255, layer = 1)
+		
 		# Setting button thread
 		self.nButtons			= 5
 		self.buttonThread		= ButtonThread()
@@ -75,11 +76,24 @@ class SciFiCam(object):
 
 		for stencil in self.currentMode.stencils:
 			overlay = stencil.draw(overlay)
+		self.camera.remove_overlay( self.UIOverlay )
+		self.UIOverlay = self.camera.add_overlay(np.getbuffer(overlay), alpha = 255, layer = 1)
 	
-		self.camera.add_overlay(np.getbuffer(overlay), alpha = 255, layer = 1)
-
 	def close(self):
 		self.buttonThread._stop_event.set()
+		self.ocThread._stop_event.set()
+
+	def foo(self):
+		print "FOO"
+
+	def restart(self):
+		print "Restarting..."
+		self.close()
+		command = "/usr/bin/sudo /sbin/shutdown -r now"
+		import subprocess
+		process = subprocess.Popen(command.split(), stdout=subprocess.PIPE)
+		output = process.communicate()[0]
+		print output
 
 	def _getSetting(self, name):
 		settings= {}
@@ -131,6 +145,14 @@ class SciFiCam(object):
 		o = self.camera.add_overlay(image.tostring(), size = image.size, alpha = 255, layer = 3)
 		sleep(1)
 		self.camera.remove_overlay(o)
+	
+	def changeBrightness(self, delta):
+		if self.camera.brightness + delta > 100:
+			self.camera.brightness = 100
+		elif self.camera.brightness + delta < 0:
+			self.camera.brightness = 0
+		else:
+			self.camera.brightness = self.camera.brightness + delta
 
 if __name__ == "__main__":
 	camera = SciFiCam()
@@ -138,5 +160,6 @@ if __name__ == "__main__":
 		while True:
 			sleep(1)
 	finally:
+		print "Closing camera"
 		camera.close()
 		sys.exit()

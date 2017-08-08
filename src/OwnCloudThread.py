@@ -18,14 +18,14 @@ class OwnCloudThread(threading.Thread):
 		if not fileInfo:
 			self.client.mkdir(self.remoteDir)
 
-		self.active		= False
-	
+		self._stop_event 	= threading.Event()
+
 	def run(self):
 		while True:
+			if self._stop_event.is_set():
+				break
 			remoteFiles = [ str(os.path.basename(file.path)) for file in self.client.list(self.remoteDir)]
-			print remoteFiles
 			for fileName in os.listdir(self.localDir):
-				print fileName
 				if not fileName in remoteFiles:
 					localPath 	= os.path.join(self.localDir, fileName)
 					remotePath 	= os.path.join(self.remoteDir, fileName)

@@ -22,6 +22,10 @@ Explain how the hardware components (if any) of your project function as concise
 
 Provide instructions on usage, describe a test scheme and show how to run the tests with code and hardware configuration examples with some representative results.
 
+# Requirements
+
+* pyocclient
+
 ## License
 
 A short snippet describing the license (MIT, Apache, etc.) you have chosen to use

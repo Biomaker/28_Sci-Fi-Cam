@@ -27,7 +27,9 @@ class ButtonThread(threading.Thread):
 		self._IOC_READ		=	2
 
 	def setCallback(self, button, fn):
+		self.lock.acquire()
 		self.callbacks[button] = fn
+		self.lock.release()
 
 	def _IOC(self, dir, type, nr, size):
 		ioc = (dir << self._IOC_DIRSHIFT ) | (type << self._IOC_TYPESHIFT ) | (nr << self._IOC_NRSHIFT ) | (size << self._IOC_SIZESHIFT)
@@ -52,16 +54,16 @@ class ButtonThread(threading.Thread):
 					self.callbacks[0]()
 			if not buf[0] & 0b00010:
 				if self.callbacks[1]:
-					self.callbacks[0]()
+					self.callbacks[1]()
 			if not buf[0] & 0b00100:
 				if self.callbacks[2]:
-					self.callbacks[0]()
+					self.callbacks[2]()
 			if not buf[0] & 0b01000:
 				if self.callbacks[3]:
-					self.callbacks[0]()
+					self.callbacks[3]()
 			if not buf[0] & 0b10000:
 				if self.callbacks[4]:
-					self.callbacks[0]()
+					self.callbacks[4]()
 
 		self.lock.release()
 		return keys
@@ -75,6 +77,7 @@ class ButtonThread(threading.Thread):
 	
 	def stop(self):
 		self._stop_event.set()
+
 if __name__ == "__main__":
 	bt = ButtonThread()
 	bt.start()

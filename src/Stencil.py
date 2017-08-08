@@ -19,7 +19,7 @@ class Stencil(object):
 		fontSize  	= 1
 		font 		= ImageFont.truetype("/usr/share/fonts/truetype/freefont/FreeMono.ttf", fontSize)
 
-		value 		= self.getValue() 
+		value 		= str(self.getValue()) 
 
 		while font.getsize(value)[0] < boxWidth * 0.8:
 			fontSize += 1
@@ -48,3 +48,7 @@ class NumberOfPhotosStencil(Stencil):
 		if not counter:
 			counter = 0
 		return counter
+
+class BrightnessStencil(Stencil):
+	def getValue(self):
+		return self.camera.camera.brightness
