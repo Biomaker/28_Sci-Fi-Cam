@@ -2,12 +2,20 @@ from PIL import Image, ImageDraw, ImageFont
 import numpy as np
 
 class Stencil(object):
-	def __init__(self, box, camera):
+	def __init__(self, box, controller, selectable = False):
 		self.box 		= box
-		self.camera 	= camera
+		self.controller = controller
+		self.selected	= False
+		self.selectable = selectable
+
+		self.color		= (128, 128, 128, 128)
+		self.selectedColor	= (150, 150, 150, 128)
 
 	def _drawBox(self, imgDraw):
-		imgDraw.rectangle(self.box, fill = (128, 128, 128, 128))
+		if self.selected and self.selectable:
+			imgDraw.rectangle(self.box, fill = self.selectedColor)
+		else:
+			imgDraw.rectangle(self.box, fill = self.color)
 	
 	def getValue(self):
 		return "Null"
@@ -42,13 +50,3 @@ class Stencil(object):
 		overlay = np.array(img)
 		return overlay
 
-class NumberOfPhotosStencil(Stencil):
-	def getValue(self):
-		counter = self.camera._getSetting('counter')
-		if not counter:
-			counter = 0
-		return counter
-
-class BrightnessStencil(Stencil):
-	def getValue(self):
-		return self.camera.camera.brightness

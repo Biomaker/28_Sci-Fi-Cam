@@ -12,15 +12,11 @@ class RefreshOverlayMethod():
 		function(*self.args, **self.kwargs)
 		self.camera._refreshOverlay()
 
-class CaptureMode:
+
+class Mode(Object):
 	def __init__(self, camera):
-		self.camera = camera
-		self.buttonFunction = [
-			RefreshOverlayMethod(self.camera, "restart"),
-			RefreshOverlayMethod(self.camera, "changeBrightness", 10),
-			RefreshOverlayMethod(self.camera, "changeBrightness", -10),
-			RefreshOverlayMethod(self.camera, "foo"),
-			RefreshOverlayMethod(self.camera, "capture"),
-		]
-		self.stencils = [ 	NumberOfPhotosStencil([0, 0, 200, 200], self.camera),
-							BrightnessStencil([0, self.camera.camera.resolution[1]-200, 200, self.camera.camera.resolution[1] ], self.camera) ]
+		self.camera				= camera
+		self.nButtons			= self.camera.nButtons
+		self.buttonFunctions	= [ None for i in self.nButtons ]
+		self.stencils			= []
+		
