@@ -27,13 +27,16 @@ class SciFiCam(object):
 
 		setfile 				= open(self.settingsFile, 'a')
 		setfile.close()
-
+		
+		#self.cameraResolution = (1280, 720)
+		self.cameraResolution = (640, 480)
+		self.overlaySize 	  = ( self.cameraResolution[1], self.cameraResolution[0],3 )
 		# Setting camera
 		self.camera				= PiCamera()
-		self.camera.resolution	= (1280, 720)
+		self.camera.resolution	= self.cameraResolution
 		self.camera.rotation	= 90
-		self.blank				= np.ones((720, 1280, 3), dtype=np.uint8) * 255
-		self.UIOverlay			= self.camera.add_overlay(np.getbuffer(np.zeros((720, 1280, 3), dtype=np.uint8)), alpha = 255, layer = 1)
+		self.blank				= np.ones(self.overlaySize, dtype=np.uint8) * 255
+		self.UIOverlay			= self.camera.add_overlay(np.getbuffer(np.zeros( self.overlaySize, dtype=np.uint8)), format = 'rgb', alpha = 255, layer = 1)
 		
 		# Setting button thread
 		self.nButtons			= 5
@@ -46,13 +49,10 @@ class SciFiCam(object):
 		
 		print "Setting up OwnCloud"
 		# Setting owncloud thread
-		ocAddress			= self._getSetting("ocAddress")
-		ocLogin				= self._getSetting("ocLogin")
-		ocPass				= self._getSetting("ocPass")
+		self.ocAddress			= self._getSetting("ocAddress")
+		self.ocLogin				= self._getSetting("ocLogin")
+		self.ocPass				= self._getSetting("ocPass")
 		
-
-		self.camera._set_exposure_mode('nightpreview')
-
 		self.modes = []
 		
 	def _issueWaring(self, message):
@@ -110,7 +110,7 @@ class SciFiCam(object):
 		self.buttonThread.start()
 		
 		try:
-			self.ocThread = OwnCloudThread(ocAddress, ocLogin, ocPass, self.picDir)
+			self.ocThread = OwnCloudThread(self.ocAddress, self.ocLogin, self.ocPass, self.picDir)
 			self.ocThread.start()
 		except Exception as e:
 			self.ocThread = None
@@ -122,6 +122,9 @@ class SciFiCam(object):
 		if len(self.modes) > 0:
 			self.setMode( self.modes[0] )
 
+		sleep(2)
+		# self.camera.exposure_mode = 'off'
+
 	def addMode(self, Mode):
 		self.modes.append(Mode)
 		self.setMode(0)
@@ -132,13 +135,13 @@ class SciFiCam(object):
 			self.update()
 	
 	def update(self):
-		overlay = np.zeros((720, 1280, 3), dtype=np.uint8)
-			
+		overlay = np.zeros( self.overlaySize, dtype=np.uint8)
+		print overlay.shape
 		for UIElement in self.currentMode.UISetters + self.currentMode.UIGetters:
 			overlay = UIElement.update(overlay)
 
 		self.camera.remove_overlay(self.UIOverlay)
-		self.UIOverlay = self.camera.add_overlay( np.getbuffer(overlay), alpha = 255, layer = 1 )
+		self.UIOverlay = self.camera.add_overlay( np.getbuffer(overlay), format = 'rgb', alpha = 255, layer = 1 )
 
 	def setNextMode(self):
 		if len(self.modes) > 0:
@@ -152,6 +155,7 @@ class SciFiCam(object):
 	def stop(self):
 		self.buttonThread._stop_event.set()
 		self.ocThread._stop_event.set()
+		self.camera.stop_preview()
 
 	def foo(self):
 		print "FOO"

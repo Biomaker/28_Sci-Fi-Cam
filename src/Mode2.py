@@ -2,6 +2,7 @@ from collections import OrderedDict
 
 from PIL import Image, ImageDraw, ImageFont
 import numpy as np
+from fractions import Fraction
 
 class Mode2(object):
 	def __init__(self, camera):
@@ -39,8 +40,8 @@ class UIElement(object):
 		self.value 		= "Nan" 
 		self.function 	= None
 		self.selected 	= False
-		self.selectedColor = (50, 50, 50, 255)
-		self.color = (255, 255, 255, 255)
+		self.color = (50, 50, 50, 255)
+		self.selectedColor = (255, 255, 255, 255)
 
 	def _bind(self, controller, function, *args, **kwargs):
 		if hasattr(controller, function):
@@ -116,9 +117,13 @@ class UISelector(UIElement, UITextModifyer):
 		else:
 			return "Nan"
 
-	def setValues(self, values):	
+	def setValues(self, values, default = 'None'):	
 		self.values 	= OrderedDict(values)
 		self.current 	= 0
+
+		if (default in self.values.keys() ):
+			self.current = self.values.keys().index(default)
+		
 		self.set(self.current)
 
 	def set(self, idx):
@@ -156,8 +161,10 @@ class SelectorMode(Mode2):
 	def select(self, element, update = True):
 		if element in self.UISetters:
 			self.selectedElement = element
+			for element in self.UISetters:
+				element.selected = False
 			self.selectedElement.selected = True
-
+			
 		print "selected ", self.UISetters.index(self.selectedElement)
 		
 		if update:
@@ -180,15 +187,34 @@ class SingleShotMode(SelectorMode):
 	def __init__(self, camera):
 		super(SingleShotMode, self).__init__(camera)
 
-		exposureSelector = UISelector([0,0,200,200])
-		exposureSelector.setValues([('100', 100), ('200', 200), ('300', 300), ('400', 400)])
-		self.bind( exposureSelector, "setExposure" )
+		shutterSpeedSelector = UISelector([0,0,100,100])
+		shutterSpeedSelector.setValues(
+			[('A', 0), ('1/30', 34000), ('1/15', 68000), ('1/8', 125000), ('1/4', 250000), ('1/2', 500000)]
+		)
+		self.bind( shutterSpeedSelector, "setShutterSpeed" )
+		
+		exposureCompensationSelector = UISelector([ 0, 110, 100, 210 ])
+		exposureCompensationSelector.setValues(
+			[('-2', -12), ('-3/2', -9), ('-1', -6), ('-1/2', -3), ('+/-', 0 ), ('+1/2', 3), ('+1', 6), ('+3/2', 9), ('+2', 12) ], '+/-'
+		)
+		self.bind( exposureCompensationSelector, "setExposureCompensation" )
 
-		self.select(exposureSelector, False)
+		self.select(shutterSpeedSelector, False)
 
-	def setExposure(self, value):
-		print value
+	def setShutterSpeed(self, value):
+		if value:
+			self.camera.camera.framerate = Fraction(1000000, value)
+		else:
+			if (self.camera.camera.exposure_speed):
+				self.camera.camera.framerate = Fraction(1000000, self.camera.camera.exposure_speed)
 
+		self.camera.camera.shutter_speed = value
+		
+		print "Shutter speed: ", value, self.camera.camera.exposure_speed, self.camera.camera.framerate
+	
+	def setExposureCompensation(self, value):
+		self.camera.camera.exposure_compensation = value
+		print "Exposure compensation: ", self.camera.camera.exposure_compensation
 	def capture(self):
 		self.camera.capture()
 
