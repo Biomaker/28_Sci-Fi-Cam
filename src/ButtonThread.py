@@ -27,9 +27,8 @@ class ButtonThread(threading.Thread):
 		self._IOC_READ		=	2
 
 	def setCallback(self, button, fn):
-		self.lock.acquire()
 		self.callbacks[button] = fn
-		self.lock.release()
+		print "Released"
 
 	def _IOC(self, dir, type, nr, size):
 		ioc = (dir << self._IOC_DIRSHIFT ) | (type << self._IOC_TYPESHIFT ) | (nr << self._IOC_NRSHIFT ) | (size << self._IOC_SIZESHIFT)
@@ -44,7 +43,6 @@ class ButtonThread(threading.Thread):
 		buf = array.array('h',[0])
 
 		keys = []
-		self.lock.acquire()
 		
 		with open('/dev/fb1', 'rw') as fd:
 			fcntl.ioctl(fd, LCD4DPI_GET_KEYS, buf, 1)
@@ -65,15 +63,21 @@ class ButtonThread(threading.Thread):
 				if self.callbacks[4]:
 					self.callbacks[4]()
 
-		self.lock.release()
 		return keys
 
 	def run(self):
-		while True:
-			if self._stop_event.is_set():
-				break
-			self.keys = self.readKeys()
-			sleep(0.1)
+		while not self._stop_event.wait(0.1):
+			try:
+				self.keys = self.readKeys()
+			except:
+				print "Exception"
+				self.stop()
+
+		# while True:
+		# 	if self._stop_event.is_set():
+		# 		break
+		# 	self.keys = self.readKeys()
+		# 	sleep(0.1)
 	
 	def stop(self):
 		self._stop_event.set()

@@ -54,6 +54,7 @@ class SciFiCam(object):
 		self.ocPass				= self._getSetting("ocPass")
 		
 		self.modes = []
+		self.currentMode = None
 		
 	def _issueWaring(self, message):
 		print "SciFiCam Warning: {0}".format(message)
@@ -120,24 +121,26 @@ class SciFiCam(object):
 		self.camera.preview.alpha = 128
 		
 		if len(self.modes) > 0:
-			self.setMode( self.modes[0] )
+			self.setMode( 0 )
 
-		sleep(2)
-		# self.camera.exposure_mode = 'off'
 
-	def addMode(self, Mode):
-		self.modes.append(Mode)
-		self.setMode(0)
+	def addMode(self, mode):
+		self.modes.append(mode)
 
 	def setMode(self, idx):
+		print "Setting MODE ", idx
+		print self.modes
 		if idx >= 0 and idx < len(self.modes):
 			self.currentMode = self.modes[idx](self)
+			print "Set MODE, trying to INIT", idx
+			# self.currentMode.init()
+			print "Done"
 			self.update()
 	
 	def update(self):
 		overlay = np.zeros( self.overlaySize, dtype=np.uint8)
 		print overlay.shape
-		for UIElement in self.currentMode.UISetters + self.currentMode.UIGetters:
+		for UIElement in self.currentMode.UISetters + self.currentMode.UIGetters + self.currentMode.UIStatic:
 			overlay = UIElement.update(overlay)
 
 		self.camera.remove_overlay(self.UIOverlay)
@@ -198,8 +201,8 @@ class SciFiCam(object):
 
 if __name__ == "__main__":
 	camera = SciFiCam()
-	camera.addMode(SingleShotMode)
-
+	camera.addMode(AutoMode)
+	camera.addMode(ManualMode)
 	camera.start()
 	try:
 		while True:
