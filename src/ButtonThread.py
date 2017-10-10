@@ -66,7 +66,7 @@ class ButtonThread(threading.Thread):
 		return keys
 
 	def run(self):
-		while not self._stop_event.wait(0.1):
+		while not self._stop_event.wait(0.2):
 			try:
 				self.keys = self.readKeys()
 			except:

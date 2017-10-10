@@ -4,6 +4,9 @@ from PIL import Image, ImageDraw, ImageFont
 import numpy as np
 from fractions import Fraction
 from time import sleep
+import os
+
+from threading import Thread, Event
 
 class Mode2(object):
 	def __init__(self, camera):
@@ -164,10 +167,10 @@ class UISelector(UIElement, UITextModifyer):
 			self.current = idx
 
 	def setNext(self):
-		self.set( self.current + 1 )
+		self.set( (self.current + 1) % len(self.values) )
 
 	def setPrev(self):
-		self.set (self.current - 1)
+		self.set ( (self.current - 1) % len(self.values) )
 
 
 class SelectorMode(Mode2):
@@ -191,7 +194,7 @@ class SelectorMode(Mode2):
 		self.addStatic(selectLabel)
 
 		if hasattr(self, "icon"):
-			icon = UIImage([0, 0, 100, 100], self.icon)
+			icon = UIImage([0, 0, 100, 100], os.path.join(self.camera.iconDir, self.icon) )
 			self.addStatic(icon)
 
 		self.setButtonTrigger(0, self.capture)
@@ -200,13 +203,8 @@ class SelectorMode(Mode2):
 		self.setButtonTrigger(3, self.selectNext)
 		self.setButtonTrigger(4, self.setNextMode)
 
-	# def init(self):
-	# 	self.setButtonTrigger(0, self.camera.capture)
-	# 	self.setButtonTrigger(1, self.setPrev)
-	# 	self.setButtonTrigger(2, self.setNext)
-	# 	self.setButtonTrigger(3, self.selectNext)
-	# 	self.setButtonTrigger(4, self.setNextMode)
-	# 	self.camera.camera.exposure_mode = self.exposureMode
+	def close(self):
+		pass
 
 	def capture(self):
 		self.camera.capture()
@@ -279,6 +277,11 @@ class AutoMode(SelectorMode):
 		
 		self.select(exposureCompensationSelector, False)
 
+	def close(self):
+		self.setExposureCompensation(0)
+		self.setWhiteBalance("auto")
+		self.setEffect("none")
+
 	def setExposureCompensation(self, value):
 		self.camera.camera.exposure_compensation = value
 
@@ -321,43 +324,100 @@ class ManualMode(SelectorMode):
 	def capture(self):
 		self.camera.camera.exposure_mode = "auto"
 		self.camera.camera.shutter_speed = self.shutter_speed
-		sleep(0.5)
+		sleep(1)
 		self.camera.camera.exposure_mode = "off"
 		self.camera.capture()
 
-# class SingleShotMode(SelectorMode):
-# 	def __init__(self, camera):
-# 		super(SingleShotMode, self).__init__(camera)
 
-# 		shutterSpeedSelector = UISelector([0,0,100,100])
-# 		shutterSpeedSelector.setValues(
-# 			[('A', 0), ('1/30', 34000), ('1/15', 68000), ('1/8', 125000), ('1/4', 250000), ('1/2', 500000)]
-# 		)
-# 		self.bind( shutterSpeedSelector, "setShutterSpeed" )
-		
-# 		exposureCompensationSelector = UISelector([ 0, 110, 100, 210 ])
-# 		exposureCompensationSelector.setValues(
-# 			[('-2', -12), ('-3/2', -9), ('-1', -6), ('-1/2', -3), ('+/-', 0 ), ('+1/2', 3), ('+1', 6), ('+3/2', 9), ('+2', 12) ], '+/-'
-# 		)
-# 		self.bind( exposureCompensationSelector, "setExposureCompensation" )
-
-# 		self.select(shutterSpeedSelector, False)
-
-# 	def setShutterSpeed(self, value):
-# 		if value:
-# 			self.camera.camera.framerate = Fraction(1000000, value)
-# 		else:
-# 			if (self.camera.camera.exposure_speed):
-# 				self.camera.camera.framerate = Fraction(1000000, self.camera.camera.exposure_speed)
-
-# 		self.camera.camera.shutter_speed = value
-		
-# 		print "Shutter speed: ", value, self.camera.camera.exposure_speed, self.camera.camera.framerate
+class TimelapseTimer(Thread):
+	def __init__(self, controller, interval):
+		super(TimelapseTimer, self).__init__()
+		self.controller = controller
+		self.stopped = Event()
+		self.interval = interval
 	
-# 	def setExposureCompensation(self, value):
-# 		self.camera.camera.exposure_compensation = value
-# 		print "Exposure compensation: ", self.camera.camera.exposure_compensation
-# 	def capture(self):
-# 		self.camera.capture()
+	def run(self):
+		print "Timer is running"
+		while not self.stopped.wait(self.interval):
+			try:
+				print("Tick")
+				self.controller.makeShot()
+			except:
+				self.stopped.set()
+
+class TimelapseMode(SelectorMode):
+	def __init__(self, camera):
+		self.icon = "cameraT.png"
+		self.shutter_speed = 0
+
+		super(TimelapseMode, self).__init__(camera)
+
+		self.active = False
+		self.interval = 60
+		self.counter = 0
+
+		shutterSpeedSelector = UISelector([200, 0, 300, 100])
+		shutterSpeedSelector.setValues(
+			[('A', 0), ('1/30', 34000), ('1/15', 68000), ('1/8', 125000), ('1/4', 250000), ('1/2', 500000)]
+		)
+		self.bind( shutterSpeedSelector, "setShutterSpeed" )
+
+		intervalSelector = UISelector([350, 0, 450, 100])
+		intervalSelector.setValues([ ("10''", 10), ("20''", 20), ("30''", 30), ("45''", 45), ("1'", 60), ("2'", 120), ("3'", 180), ("4'", 240), ("5'", 300), ("10'", 600), ("20'", 1200), ("30'", 1800), ("60'", 3600) ], 4)
+		self.bind( intervalSelector, "setInterval" )
+
+		self.counterLabel = UILabel([540, 350, 640, 450], "-")
+		self.addStatic(self.counterLabel)
+
+		self.select(intervalSelector, False)
+
+	def setInterval(self, value):
+		self.interval = value
+	
+	def setShutterSpeed(self, value):
+		if value:
+			self.camera.camera.framerate = Fraction(1000000, value)
+		else:
+			if (self.camera.camera.exposure_speed):
+				self.camera.camera.framerate = Fraction(1000000, self.camera.camera.exposure_speed)
+		
+		self.camera.camera.shutter_speed = value
+		self.shutter_speed = value
+
+	def makeShot(self):
+		fileName = os.path.join(self.timelapseDir, "{0}.png".format(self.counter))
+
+		self.camera.camera.exposure_mode = "auto"
+		self.camera.camera.shutter_speed = self.shutter_speed
+		sleep(1)
+		self.camera.camera.exposure_mode = "off"
 
 
+		self.camera.camera.capture(fileName)
+		
+		self.counter += 1
+		self.counterLabel.value = "{0}".format(self.counter)
+		self.camera.update()
+
+		print "Saving to ", fileName
+
+	def capture(self):
+		if not self.active:
+			self.active = True
+			self.timelapseDir = self.camera._getNewFileName()
+			try:
+				os.mkdir(self.timelapseDir)
+				self.timer = TimelapseTimer(self, 10)
+				self.counterLabel.value = '0'
+				self.camera.update()
+				self.timer.start()
+			except Exception as e:
+				print e
+			
+		else:
+			print "Stopping"
+			self.timer.stopped.set()
+			self.active = False
+			self.counter = 0
+			self.counterLabel.value = '-'
+			self.camera.update()

@@ -21,6 +21,7 @@ class SciFiCam(object):
 		self.dir				= os.getenv('SCI_PI_CAM_DIR', '/home/pi/SciFiCam/')
 		self.settingsFile		= os.path.join(self.dir, "settings.py")
 		self.picDir				= os.path.join(self.dir, "pics")
+		self.iconDir			= os.path.join(self.dir, "icons")
 
 		if not os.path.isdir(self.picDir):
 			os.makedirs(self.picDir)
@@ -28,7 +29,7 @@ class SciFiCam(object):
 		setfile 				= open(self.settingsFile, 'a')
 		setfile.close()
 		
-		#self.cameraResolution = (1280, 720)
+		# self.cameraResolution = (1280, 720)
 		self.cameraResolution = (640, 480)
 		self.overlaySize 	  = ( self.cameraResolution[1], self.cameraResolution[0],3 )
 		# Setting camera
@@ -89,7 +90,7 @@ class SciFiCam(object):
 
 		self._setSetting("counter", counter+1)
 
-		return os.path.join( self.dir, "pics", "{0}.jpg".format(counter) )
+		return os.path.join( self.dir, "pics", "{0}".format(counter) )
 
 
 	# def _setMode(self, mode):
@@ -117,8 +118,8 @@ class SciFiCam(object):
 			self.ocThread = None
 			self._issueWaring("Could not initialise OwnCloud: {0}".format(sys.exc_info()[1]) )
 
-		self.renderer = self.camera.start_preview()
-		self.camera.preview.alpha = 128
+		# self.renderer = self.camera.start_preview()
+		# self.camera.preview.alpha = 128
 		
 		if len(self.modes) > 0:
 			self.setMode( 0 )
@@ -131,6 +132,11 @@ class SciFiCam(object):
 		print "Setting MODE ", idx
 		print self.modes
 		if idx >= 0 and idx < len(self.modes):
+			self.camera.stop_preview()
+			self.renderer = self.camera.start_preview()
+			self.camera.preview.alpha = 128
+			if self.currentMode:
+				self.currentMode.close()
 			self.currentMode = self.modes[idx](self)
 			print "Set MODE, trying to INIT", idx
 			# self.currentMode.init()
@@ -142,6 +148,8 @@ class SciFiCam(object):
 		print overlay.shape
 		for UIElement in self.currentMode.UISetters + self.currentMode.UIGetters + self.currentMode.UIStatic:
 			overlay = UIElement.update(overlay)
+
+		# self.UIOverlay.update(np.getbuffer(overlay))
 
 		self.camera.remove_overlay(self.UIOverlay)
 		self.UIOverlay = self.camera.add_overlay( np.getbuffer(overlay), format = 'rgb', alpha = 255, layer = 1 )
@@ -181,7 +189,7 @@ class SciFiCam(object):
 		self.camera.remove_overlay(o)
 
 		# Capturing to file
-		fileName = self._getNewFileName()
+		fileName = self._getNewFileName() + ".png"
 		print "Saving to ", fileName
 		self.camera.capture(fileName)
 		
@@ -203,10 +211,14 @@ if __name__ == "__main__":
 	camera = SciFiCam()
 	camera.addMode(AutoMode)
 	camera.addMode(ManualMode)
+	camera.addMode(TimelapseMode)
 	camera.start()
 	try:
 		while True:
 			sleep(1)
+	except Exception as e:
+		print(e)
+		
 	finally:
 		print "Closing camera"
 		camera.stop()
