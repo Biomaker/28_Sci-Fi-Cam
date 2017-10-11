@@ -29,12 +29,12 @@ class SciFiCam(object):
 		setfile 				= open(self.settingsFile, 'a')
 		setfile.close()
 		
-		# self.cameraResolution = (1280, 720)
-		self.cameraResolution = (640, 480)
-		self.overlaySize 	  = ( self.cameraResolution[1], self.cameraResolution[0],3 )
+		# self.captureResolution = (1280, 720)
+		self.displayResolution = (640, 480)
+		self.overlaySize 	  = ( self.displayResolution[1], self.displayResolution[0],3 )
 		# Setting camera
 		self.camera				= PiCamera()
-		self.camera.resolution	= self.cameraResolution
+		self.camera.resolution	= self.displayResolution
 		self.camera.rotation	= 90
 		self.blank				= np.ones(self.overlaySize, dtype=np.uint8) * 255
 		self.UIOverlay			= self.camera.add_overlay(np.getbuffer(np.zeros( self.overlaySize, dtype=np.uint8)), format = 'rgb', alpha = 255, layer = 1)
@@ -212,12 +212,13 @@ if __name__ == "__main__":
 	camera.addMode(AutoMode)
 	camera.addMode(ManualMode)
 	camera.addMode(TimelapseMode)
+	camera.addMode(VideoCaptureMode)
 	camera.start()
 	try:
 		while True:
 			sleep(1)
 	except Exception as e:
-		print(e)
+		print "YAAA: ", e
 		
 	finally:
 		print "Closing camera"

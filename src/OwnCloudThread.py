@@ -21,7 +21,6 @@ class OwnCloudThread(threading.Thread):
 		self._stop_event 	= threading.Event()
 
 	def updateDir(self, remoteDir, localDir):
-		print "RemoteDir: ", remoteDir
 		remoteFiles = [ str(os.path.basename( os.path.normpath(file.path) )) for file in self.client.list(remoteDir)]
 
 		for fileName in os.listdir(localDir):
@@ -29,7 +28,7 @@ class OwnCloudThread(threading.Thread):
 			localPath = os.path.join(localDir, fileName)
 			remotePath = os.path.join(remoteDir, fileName)
 			
-			if not fileName in remoteFiles:
+			if not fileName in remoteFiles and not fileName.endswith('.part'):
 
 				print "Uploading {0} to {1}".format(localPath, remotePath)
 
@@ -40,7 +39,7 @@ class OwnCloudThread(threading.Thread):
 					self.client.put_file( remotePath, localPath )
 	
 			elif os.path.isdir(localPath):
-				print "Dir exists: ", remotePath
+				# print "Dir exists: ", remotePath
 				self.updateDir(remotePath, localPath)
 
 

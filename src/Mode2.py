@@ -21,7 +21,7 @@ class Mode2(object):
 	def bind(self, UIElement, function, *args, **kwargs):
 		if hasattr(self, function):
 			UIElement._bind(self, function, *args, **kwargs)
-			
+			UIElement.controller = self
 			if UIElement.role == UI_SETTER:
 				self.UISetters.append(UIElement)
 			else:
@@ -33,6 +33,7 @@ class Mode2(object):
 
 	def addStatic(self, UIElement):
 		if UIElement.role == UI_STATIC:
+			UIElement.controller = self
 			self.UIStatic.append(UIElement)
 
 	def setButtonTrigger(self, pos, function):
@@ -113,9 +114,11 @@ class UITextModifyer(object):
 class UIImageModifyer(object):
 	def loadImage(self):
 		try:
-			image = Image.open(self.value)
+			image = Image.open(os.path.join(self.controller.camera.iconDir, self.value))
+			print "Loaded {0}".format(self.value)
 		except:
 			image = None
+			print "Icon {0} not found".format(self.value)
 		finally:
 			return image
 	
@@ -139,6 +142,13 @@ class UIImage(UIElement, UIImageModifyer):
 	def __init__(self, box, value):
 		super(UIImage, self).__init__(box, role = UI_STATIC)
 		self.value = value
+		self.boxRecord = self.box
+
+	def hide(self):
+		self.box = (0,0,0,0)
+
+	def show(self):
+		self.box = self.boxRecord
 
 class UISelector(UIElement, UITextModifyer):
 	def __init__(self, box):
@@ -194,7 +204,7 @@ class SelectorMode(Mode2):
 		self.addStatic(selectLabel)
 
 		if hasattr(self, "icon"):
-			icon = UIImage([0, 0, 100, 100], os.path.join(self.camera.iconDir, self.icon) )
+			icon = UIImage([0, 0, 100, 100], self.icon )
 			self.addStatic(icon)
 
 		self.setButtonTrigger(0, self.capture)
@@ -351,6 +361,7 @@ class TimelapseMode(SelectorMode):
 		self.shutter_speed = 0
 
 		super(TimelapseMode, self).__init__(camera)
+		self.camera.camera.exposure_mode = "off"
 
 		self.active = False
 		self.interval = 60
@@ -421,3 +432,61 @@ class TimelapseMode(SelectorMode):
 			self.counter = 0
 			self.counterLabel.value = '-'
 			self.camera.update()
+
+class VideoWait(Thread):
+	def __init__(self, controller):
+		super(VideoWait, self).__init__()
+		self.controller = controller
+		self.stopped = Event()
+
+	def run(self):
+		print "Starting Recording..."
+		while not self.stopped.is_set():
+			self.controller.camera.camera.wait_recording(1)
+			print "Tick..."
+		self.controller.stopRecording()
+
+class VideoCaptureMode(SelectorMode):
+	def __init__(self, camera):
+		try:
+			self.icon = "cameraV.png"
+			super(VideoCaptureMode, self).__init__(camera)
+			self.camera.camera.exposure_mode = "auto"
+			self.recording = False
+
+			self.recordImage = UIImage([540, 350, 640, 450], "record.png")
+			self.recordImage.hide()
+			self.addStatic(self.recordImage)
+		except Exception as e:
+			print e
+
+	def capture(self):
+		try:
+			if not self.recording:
+				self.fileName = self.camera._getNewFileName()
+				self.camera.camera.start_recording(self.fileName + ".h264.part", format = "h264")
+				self.recording = True
+				self.recordThread = VideoWait(self)
+				self.recordThread.start()
+				self.recordImage.show()
+				self.camera.update()
+			else:
+				self.recordThread.stopped.set()
+		except Exception as e:
+			print e
+
+	def close(self):
+		if self.recording:
+			self.recordThread.stopped.set()
+		while self.recording:
+			sleep(1)
+
+	def stopRecording(self):
+		print "Stopping Recording..."
+		self.camera.camera.stop_recording()
+		os.rename(self.fileName + ".h264.part", self.fileName + ".h264")
+		self.recordImage.hide()
+		self.camera.update()
+		self.recording = False
+
+
