@@ -5,11 +5,15 @@ import owncloud
 from time import sleep
 
 class OwnCloudThread(threading.Thread):
-	def __init__(self, ocAddress, ocLogin, ocPass, ocLocalDir, ocRemoteDir = "SciFiCam"):
+	def __init__(self, camera, ocAddress, ocLogin, ocPass, ocLocalDir, ocRemoteDir = "SciFiCam"):
 		super(OwnCloudThread, self).__init__()
-		print "Initialising client for {0}".format(ocAddress)
+		self.camera = camera
+		self.camera._issueMessage("Initialising client for {0}".format(ocAddress), level = 2)
+		
 		self.client		= owncloud.Client(ocAddress)
-		print "Logging in as {0}".format(ocLogin)
+		
+		camera._issueMessage("Logging in as {0}".format(ocLogin), level = 2)
+		
 		self.client.login(ocLogin, ocPass)
 		
 		self.remoteDir	= ocRemoteDir
@@ -19,6 +23,7 @@ class OwnCloudThread(threading.Thread):
 			self.client.mkdir(self.remoteDir)
 
 		self._stop_event 	= threading.Event()
+		camera._issueMessage("OwnCloud is setup".format(ocLogin), level = 2)
 
 	def updateDir(self, remoteDir, localDir):
 		remoteFiles = [ str(os.path.basename( os.path.normpath(file.path) )) for file in self.client.list(remoteDir)]
@@ -29,23 +34,18 @@ class OwnCloudThread(threading.Thread):
 			remotePath = os.path.join(remoteDir, fileName)
 			
 			if not fileName in remoteFiles and not fileName.endswith('.part'):
-
-				print "Uploading {0} to {1}".format(localPath, remotePath)
+				self.camera._issueMessage("Uploading {0} to {1}".format(localPath, remotePath), level = 2)
 
 				if os.path.isdir(localPath):
 					self.client.mkdir( remotePath )
-					# self.client.put_directory( remotePath, localPath )
 				else:
 					self.client.put_file( remotePath, localPath )
 	
 			elif os.path.isdir(localPath):
-				# print "Dir exists: ", remotePath
 				self.updateDir(remotePath, localPath)
 
 
 	def run(self):
-		while True:
-			if self._stop_event.is_set():
-				break
+		while not self._stop_event.wait(3):
 			self.updateDir(self.remoteDir, self.localDir)
 			sleep(3)

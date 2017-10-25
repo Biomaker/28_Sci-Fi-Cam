@@ -28,7 +28,6 @@ class ButtonThread(threading.Thread):
 
 	def setCallback(self, button, fn):
 		self.callbacks[button] = fn
-		print "Released"
 
 	def _IOC(self, dir, type, nr, size):
 		ioc = (dir << self._IOC_DIRSHIFT ) | (type << self._IOC_TYPESHIFT ) | (nr << self._IOC_NRSHIFT ) | (size << self._IOC_SIZESHIFT)
@@ -72,12 +71,6 @@ class ButtonThread(threading.Thread):
 			except:
 				print "Exception"
 				self.stop()
-
-		# while True:
-		# 	if self._stop_event.is_set():
-		# 		break
-		# 	self.keys = self.readKeys()
-		# 	sleep(0.1)
 	
 	def stop(self):
 		self._stop_event.set()
