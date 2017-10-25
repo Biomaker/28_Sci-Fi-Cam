@@ -92,21 +92,6 @@ class SciFiCam(object):
 
 		return os.path.join( self.dir, "pics", "{0}".format(counter) )
 
-
-	# def _setMode(self, mode):
-	# 	for i in range(self.nButtons):
-	# 		self.buttonThread.setCallback(i, mode.buttonFunction[i])
-		
-	# 	self.currentMode = mode
-	# 	self._refreshOverlay()
-
-	# def _refreshOverlay(self):
-	# 	overlay = np.zeros((720, 1280, 3), dtype=np.uint8)
-
-	# 	for stencil in self.currentMode.stencils:
-	# 		overlay = stencil.draw(overlay)
-	# 	self.camera.remove_overlay( self.UIOverlay )
-	# 	self.UIOverlay = self.camera.add_overlay(np.getbuffer(overlay), alpha = 255, layer = 1)
 	
 	def start(self):
 		self.buttonThread.start()
@@ -131,17 +116,20 @@ class SciFiCam(object):
 	def setMode(self, idx):
 		print "Setting MODE ", idx
 		print self.modes
-		if idx >= 0 and idx < len(self.modes):
-			self.camera.stop_preview()
-			self.renderer = self.camera.start_preview()
-			self.camera.preview.alpha = 128
-			if self.currentMode:
-				self.currentMode.close()
-			self.currentMode = self.modes[idx](self)
-			print "Set MODE, trying to INIT", idx
-			# self.currentMode.init()
-			print "Done"
-			self.update()
+		try:
+			if idx >= 0 and idx < len(self.modes):
+				self.camera.stop_preview()
+				self.renderer = self.camera.start_preview()
+				self.camera.preview.alpha = 128
+				if self.currentMode:
+					self.currentMode.close()
+				self.currentMode = self.modes[idx](self)
+				print "Set MODE, trying to INIT", idx
+				# self.currentMode.init()
+				print "Done"
+				self.update()
+		except Exception as e:
+			print e
 	
 	def update(self):
 		overlay = np.zeros( self.overlaySize, dtype=np.uint8)
@@ -213,6 +201,7 @@ if __name__ == "__main__":
 	camera.addMode(ManualMode)
 	camera.addMode(TimelapseMode)
 	camera.addMode(VideoCaptureMode)
+	camera.addMode(ShutDownMode)
 	camera.start()
 	try:
 		while True:

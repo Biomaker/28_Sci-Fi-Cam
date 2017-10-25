@@ -7,6 +7,7 @@ from time import sleep
 import os
 
 from threading import Thread, Event
+from subprocess import call
 
 class Mode2(object):
 	def __init__(self, camera):
@@ -177,10 +178,12 @@ class UISelector(UIElement, UITextModifyer):
 			self.current = idx
 
 	def setNext(self):
-		self.set( (self.current + 1) % len(self.values) )
+		if len(self.values) > 0:
+			self.set( (self.current + 1) % len(self.values) )
 
 	def setPrev(self):
-		self.set ( (self.current - 1) % len(self.values) )
+		if len(self.values) > 0:
+			self.set ( (self.current - 1) % len(self.values) )
 
 
 class SelectorMode(Mode2):
@@ -188,23 +191,23 @@ class SelectorMode(Mode2):
 		super(SelectorMode, self).__init__(camera)
 		self.selectedElement = UISelector(None)
 
-		modeLabel = UILabel([0,400, 70,450], "mode")
+		modeLabel = UILabel([0,425, 70,475], "mode")
 		self.addStatic(modeLabel)
 
-		selectLabel = UILabel([90, 400, 160, 450], "select")
+		selectLabel = UILabel([90, 425, 160, 475], "select")
 		self.addStatic(selectLabel)
 
-		upLabel = UILabel([180, 400, 250, 450], "up")
+		upLabel = UILabel([180, 425, 250, 475], "up")
 		self.addStatic(upLabel)
 
-		downLabel = UILabel([270, 400, 340, 450], "down")
+		downLabel = UILabel([270, 425, 340, 475], "down")
 		self.addStatic(downLabel)
 
-		selectLabel = UILabel([360, 400, 430, 450], "capture")
+		selectLabel = UILabel([360, 425, 430, 475], "capture")
 		self.addStatic(selectLabel)
 
 		if hasattr(self, "icon"):
-			icon = UIImage([0, 0, 100, 100], self.icon )
+			icon = UIImage([20, 20, 120, 120], self.icon )
 			self.addStatic(icon)
 
 		self.setButtonTrigger(0, self.capture)
@@ -271,17 +274,17 @@ class AutoMode(SelectorMode):
 		# self.camera.renderer = self.camera.camera.start_preview()
 		# sleep(2)
 		
-		exposureCompensationSelector = UISelector([ 200, 0, 300, 100 ])
+		exposureCompensationSelector = UISelector([ 220, 20, 320, 120 ])
 		exposureCompensationSelector.setValues(
 			[('-4', -24), ('-3', -18), ('-2', -12), ('-1', -6), ('+/-', 0 ), ('+1', 6), ('+2', 12), ('+3', 18), ('+4', 24) ], 4
 		)
 		self.bind( exposureCompensationSelector, "setExposureCompensation" )
 
-		whiteBalanceSelector = UISelector([350, 0, 450, 100])
+		whiteBalanceSelector = UISelector([370, 20, 470, 120])
 		whiteBalanceSelector.setValues([ ("A", "auto"), ("S", "sunlight"), ("F", "fluorescent"), ("C", "cloudy") ], 0)
 		self.bind( whiteBalanceSelector, "setWhiteBalance" )
 
-		effectSelector = UISelector([500, 0, 600, 100])
+		effectSelector = UISelector([520, 20, 620, 120])
 		effectSelector.setValues([ ("X", "none"), ("N", "negative"), ("W", "watercolor"), ("C", "cartoon" ), ("P", "pastel"), ("WO", "washedout"), ("CS", "colorswap") ], 0)
 		self.bind(effectSelector, "setEffect")
 		
@@ -312,7 +315,7 @@ class ManualMode(SelectorMode):
 		self.camera.camera.exposure_mode = "off"
 		
 
-		shutterSpeedSelector = UISelector([200, 0, 300, 100])
+		shutterSpeedSelector = UISelector([220, 20, 320, 120])
 		shutterSpeedSelector.setValues(
 			[('A', 0), ('1/30', 34000), ('1/15', 68000), ('1/8', 125000), ('1/4', 250000), ('1/2', 500000)]
 		)
@@ -367,17 +370,17 @@ class TimelapseMode(SelectorMode):
 		self.interval = 60
 		self.counter = 0
 
-		shutterSpeedSelector = UISelector([200, 0, 300, 100])
+		shutterSpeedSelector = UISelector([220, 20, 320, 120])
 		shutterSpeedSelector.setValues(
 			[('A', 0), ('1/30', 34000), ('1/15', 68000), ('1/8', 125000), ('1/4', 250000), ('1/2', 500000)]
 		)
 		self.bind( shutterSpeedSelector, "setShutterSpeed" )
 
-		intervalSelector = UISelector([350, 0, 450, 100])
+		intervalSelector = UISelector([370, 20, 470, 120])
 		intervalSelector.setValues([ ("10''", 10), ("20''", 20), ("30''", 30), ("45''", 45), ("1'", 60), ("2'", 120), ("3'", 180), ("4'", 240), ("5'", 300), ("10'", 600), ("20'", 1200), ("30'", 1800), ("60'", 3600) ], 4)
 		self.bind( intervalSelector, "setInterval" )
 
-		self.counterLabel = UILabel([540, 350, 640, 450], "-")
+		self.counterLabel = UILabel([520, 375, 620, 475], "-")
 		self.addStatic(self.counterLabel)
 
 		self.select(intervalSelector, False)
@@ -454,7 +457,7 @@ class VideoCaptureMode(SelectorMode):
 			self.camera.camera.exposure_mode = "auto"
 			self.recording = False
 
-			self.recordImage = UIImage([540, 350, 640, 450], "record.png")
+			self.recordImage = UIImage([520, 375, 620, 475], "record.png")
 			self.recordImage.hide()
 			self.addStatic(self.recordImage)
 		except Exception as e:
@@ -488,5 +491,14 @@ class VideoCaptureMode(SelectorMode):
 		self.recordImage.hide()
 		self.camera.update()
 		self.recording = False
+
+class ShutDownMode(SelectorMode):
+	def __init__(self, camera):
+		super(ShutDownMode, self).__init__(camera)
+		self.message = UILabel([0, 125, 640, 225], "Press capture to power off")
+		self.addStatic(self.message)
+		
+	def capture(self):
+		 call("sudo nohup shutdown -h now", shell=True)
 
 
