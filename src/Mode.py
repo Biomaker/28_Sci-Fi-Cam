@@ -22,51 +22,47 @@ class Mode(object):
 		self.UIStatic 	= []
 	
 	'''
-	init() is called before rendering a mode
+	init() is called before rendering a mode.
 
 	'''
 	def init(self):
 		pass
 
 	'''
-	bind() allows to bind a mode method as a getter or setter function to a UI element
+	bind() binds a mode method as a getter or setter function to a given UI element.
+			*args and **kwargs can be used to paramerarise the getter or setter function.
 	'''
-	def bind(self, UIElement, function, *args, **kwargs):
-		if hasattr(self, function):
-			UIElement._bind(self, function, *args, **kwargs)
-			UIElement.controller = self
-			if UIElement.role == UI_SETTER:
-				self.UISetters.append(UIElement)
-			else:
-				self.UIGetters.append(UIElement)
+	def bind(self, UIElement, function = "None", *args, **kwargs):
+		
+		UIElement._bind(self, function, *args, **kwargs)
 
+		if UIElement.role == UI_STATIC:
+			self.UIStatic.append(UIElement)
+			return True
+		elif UIElement.role == UI_SETTER:
+			self.UISetters.append(UIElement)
+			return True
+		elif UIElement.role == UI_GETTER:
+			self.UIGetters.append(UIElement)
 			return True
 		else:
 			return False
-	
-	'''
-	addStatic() is used to bind a static UI element
-	'''
-	def addStatic(self, UIElement):
-		if UIElement.role == UI_STATIC:
-			UIElement.controller = self
-			self.UIStatic.append(UIElement)
 
 	'''
-	setButtonTrigger() sets a callback for a button at position pos
+	setButtonTrigger() sets a callback for a button at given position.
 	'''
 	def setButtonTrigger(self, pos, function):
 		self.camera._issueMessage("Setting callback {0}".format(pos), level = 2)
 		self.camera.buttonThread.setCallback(pos, function)
 
 	'''
-	update() is used to re-render the mode
+	update() is used to re-render the mode.
 	'''
 	def update(self):
 		self.camera.update()
 	
 	'''
-	close() is called before removing the mode from display
+	close() is called before removing the mode from display.
 	'''
 	def close(self):
 		pass
@@ -97,16 +93,17 @@ class UIElement(object):
 		self.selectedColor	= (255, 255, 255, 255)
 	
 	'''
-	_bind() is an internal function called by Mode instance during binding
+	_bind() binds a controller function to the UIElement.
 	'''
 	def _bind(self, controller, function, *args, **kwargs):
+		self.controller = controller
 		if hasattr(controller, function):
 			self.args = args
 			self.kwargs = kwargs
 			self.function = getattr(controller, function)
 	
 	'''
-	_drawBox() renders a placeholder for a UI element
+	_drawBox() renders a placeholder for the UI element.
 	'''
 	def _drawBox(self, imgDraw):
 		if self.role == UI_SETTER and self.selected:
@@ -116,7 +113,7 @@ class UIElement(object):
 
 	'''
 	update() is called every time a Mode is re-rendered. It calls _drawBox() function to
-	render a placeholder and _drawConten() function, which is defied by UIModifiers,to
+	render a placeholder and _drawContent() function, which is defied by UIModifiers,to
 	render a UI element value.
 	'''
 	def update(self, overlay):
@@ -144,13 +141,13 @@ Renders the value of a UI element as a string
 class UITextModifyer(object):
 	
 	'''
-	getText() is used to format the value to string
+	getText() formats the value to a string.
 	'''
 	def getText(self):
 		return str(self.value)
 
 	'''
-	_drawContent() is used to draw string inside a placeholder of the UI element
+	_drawContent() draws string inside a placeholder of the UIElement.
 	'''
 	def _drawContent(self, imgDraw):
 		boxWidth 		= self.box[2] - self.box[0]
@@ -181,7 +178,7 @@ Renders an icon from /icons folder with name given as a value of a UI element
 class UIImageModifyer(object):
 	
 	'''
-	loadImage() loads an image from the /icon folder
+	loadImage() loads an image from the "/icon" folder.
 	'''
 	def loadImage(self):
 		try:
@@ -192,10 +189,9 @@ class UIImageModifyer(object):
 			return image
 	
 	'''
-	_drawContent() renders the icon isonde a placeholder of the UI element
+	_drawContent() renders the icon isonde a placeholder of the UIElement.
 	'''
 	def _drawContent(self, imgDraw):
-		
 		image = self.loadImage()
 		if image:
 			boxWidth 		= self.box[2] - self.box[0]
@@ -252,7 +248,7 @@ class UISelector(UIElement, UITextModifyer):
 		self.values 	= OrderedDict()
 	
 	'''
-	getText() overrides UITextModifyer mehod to return the currently selected value from the list
+	getText() overrides UITextModifyer mehod to return the currently selected value from the list.
 	'''
 	def getText(self):
 		if len(self.values) > 0:
@@ -312,23 +308,23 @@ class SelectorMode(Mode):
 		self.selectedElement = UISelector(None)
 
 		modeLabel = UILabel([0,425, 70,475], "mode")
-		self.addStatic(modeLabel)
+		self.bind(modeLabel)
 
 		selectLabel = UILabel([90, 425, 160, 475], "select")
-		self.addStatic(selectLabel)
+		self.bind(selectLabel)
 
 		upLabel = UILabel([180, 425, 250, 475], "up")
-		self.addStatic(upLabel)
+		self.bind(upLabel)
 
 		downLabel = UILabel([270, 425, 340, 475], "down")
-		self.addStatic(downLabel)
+		self.bind(downLabel)
 
 		selectLabel = UILabel([360, 425, 430, 475], "capture")
-		self.addStatic(selectLabel)
+		self.bind(selectLabel)
 
 		if hasattr(self, "icon"):
 			icon = UIImage([20, 20, 120, 120], self.icon )
-			self.addStatic(icon)
+			self.bind(icon)
 
 		self.setButtonTrigger(0, self.capture)
 		self.setButtonTrigger(1, self.setPrev)
@@ -341,15 +337,24 @@ class SelectorMode(Mode):
 
 	def capture(self):
 		self.camera.capture()
-
+	
+	'''
+	setNext() sets a next value on the active UISelector.
+	'''
 	def setNext(self):
 		self.selectedElement.setNext()
 		self.update()
 
+	'''
+	setPrev() sets a previous value on the active UISelector.
+	'''
 	def setPrev(self):
 		self.selectedElement.setPrev()
 		self.update()
 
+	'''
+	select() sets the given UISetter to an active state.
+	'''
 	def select(self, element, update = True):
 		if element in self.UISetters:
 			self.selectedElement = element
@@ -360,6 +365,9 @@ class SelectorMode(Mode):
 		if update:
 			self.update()
 	
+	'''
+	selectNext() selects the next UISetters.
+	'''
 	def selectNext(self):
 		if len(self.UISetters) > 0:
 			index = 0
@@ -369,7 +377,10 @@ class SelectorMode(Mode):
 					index = 0
 			
 			self.select( self.UISetters[index] )
-
+	
+	'''
+	setNextMode() sets the next mode in the list of camera modes.
+	'''
 	def setNextMode(self):
 		self.camera.setNextMode()
 
@@ -521,7 +532,7 @@ class TimelapseMode(SelectorMode):
 		self.bind( intervalSelector, "setInterval" )
 
 		self.counterLabel = UILabel([520, 375, 620, 475], "-")
-		self.addStatic(self.counterLabel)
+		self.bind(self.counterLabel)
 
 		self.select(intervalSelector, False)
 
@@ -606,7 +617,7 @@ class VideoCaptureMode(SelectorMode):
 
 			self.recordImage = UIImage([520, 375, 620, 475], "record.png")
 			self.recordImage.hide()
-			self.addStatic(self.recordImage)
+			self.bind(self.recordImage)
 		except Exception as e:
 			self.camera._issueMessage("Failed to start VideoCaptureMode", level = 0, exception = e)
 
@@ -648,7 +659,7 @@ class ShutDownMode(SelectorMode):
 	def __init__(self, camera):
 		super(ShutDownMode, self).__init__(camera)
 		self.message = UILabel([0, 125, 640, 225], "Press capture to power off")
-		self.addStatic(self.message)
+		self.bind(self.message)
 		
 	def capture(self):
 		self.camera.restart()
@@ -666,16 +677,16 @@ class ErrorMode(Mode):
 			message = "SciFiCam caught an unexpected error"
 		
 		self.errorLabel = UILabel([0, 25, 640, 125], "ERROR")
-		self.addStatic(self.errorLabel)
+		self.bind(self.errorLabel)
 
 		self.errorLabel1 = UILabel([0, 125, 640, 225], message)
-		self.addStatic(self.errorLabel1)
+		self.bind(self.errorLabel1)
 
 		self.errorLabel2 = UILabel([0, 225, 640, 325], "See Log for details. Press capture to reboot")
-		self.addStatic(self.errorLabel2)
+		self.bind(self.errorLabel2)
 
 		selectLabel = UILabel([360, 425, 430, 475], "reboot")
-		self.addStatic(selectLabel)
+		self.bind(selectLabel)
 		
 		self.setButtonTrigger(0, self.restart)
 		self.setButtonTrigger(1, self.none)

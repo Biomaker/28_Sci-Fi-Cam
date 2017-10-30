@@ -4,6 +4,12 @@ import threading
 import owncloud
 from time import sleep
 
+'''
+OwnCloudThread
+
+Handles syncronisation to an OwnCloud server
+'''
+
 class OwnCloudThread(threading.Thread):
 	def __init__(self, camera, ocAddress, ocLogin, ocPass, ocLocalDir, ocRemoteDir = "SciFiCam"):
 		super(OwnCloudThread, self).__init__()
@@ -24,7 +30,10 @@ class OwnCloudThread(threading.Thread):
 
 		self._stop_event 	= threading.Event()
 		camera._issueMessage("OwnCloud is setup".format(ocLogin), level = 2)
-
+	
+	'''
+	updateDir() checs for mismatches between loacl and remote directories and updates accordingly.
+	'''
 	def updateDir(self, remoteDir, localDir):
 		remoteFiles = [ str(os.path.basename( os.path.normpath(file.path) )) for file in self.client.list(remoteDir)]
 

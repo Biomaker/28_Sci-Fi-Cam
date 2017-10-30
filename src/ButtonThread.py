@@ -2,6 +2,11 @@ import array, fcntl
 from time import sleep
 import threading
 
+'''
+Button Thread
+
+Handles keypresses on 4Dpi hat
+'''
 class ButtonThread(threading.Thread):
 	def __init__(self):
 		super(ButtonThread, self).__init__()
@@ -26,6 +31,9 @@ class ButtonThread(threading.Thread):
 		self._IOC_WRITE		=	1
 		self._IOC_READ		=	2
 
+	'''
+	setCallback() sets a callbacks of a button to the given function
+	'''
 	def setCallback(self, button, fn):
 		self.callbacks[button] = fn
 
@@ -36,7 +44,10 @@ class ButtonThread(threading.Thread):
 
 	def _IOR(self, type, nr, size):
 		return self._IOC(self._IOC_READ,  type, nr, size)
-
+	
+	'''
+	readKeys() reads the status of the buttons
+	'''
 	def readKeys(self):
 		LCD4DPI_GET_KEYS = self._IOR(ord('K'), 1, 4)
 		buf = array.array('h',[0])

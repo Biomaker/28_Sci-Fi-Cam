@@ -1,5 +1,7 @@
 import os
 import sys
+import traceback
+
 from time import sleep, strftime
 
 import numpy as np
@@ -56,7 +58,14 @@ class SciFiCam(object):
 		self.modes = [ErrorMode]
 
 		self.currentMode = None
-		
+	
+	'''
+	_issueMessage() prints a message and puts it to a log file. Messages can be of three lelels:
+		0: Error message. Causes activation of the ErrorMode and termination of the programme.
+		1: Warning message. Informs about the non critical problem.
+		2: Log message. Logs usefull debugging information.
+		For level 0 and optional exception can be given, which will be loggeg along with the message.
+	'''
 	def _issueMessage(self, message, level = 0, exception = None):
 
 		levelHeaders = ["ERROR", "WARNING", "LOG"]
@@ -70,8 +79,12 @@ class SciFiCam(object):
 		self.log.write( strftime("%d/%m/%Y %I:%M:%S ") + errorMessage +'\n')
 		
 		if level==0:
+			traceback.print_exc()
 			self.setMode(0, message = message)
-
+	'''
+	_getSetting() retrives a setting with a given name from settings.py file. If no such setting is 
+		found creates a new one.
+	'''
 	def _getSetting(self, name):
 		settings= {}
 		execfile( self.settingsFile, settings )
@@ -81,7 +94,9 @@ class SciFiCam(object):
 		else:
 			self._setSetting(name, None)
 			return None
-
+	'''
+	_setSetting writes a new setting value to the settings.py file.
+	'''
 	def _setSetting(self, name, val):
 		settings= {}
 		execfile( self.settingsFile, settings )
@@ -93,7 +108,10 @@ class SciFiCam(object):
 			if key != "__builtins__":
 				settingFile.write("{0}='{1}'\n\n".format(key, val))
 		settingFile.close()
-
+	
+	'''
+	_getNewFileName() gets a sequential filename for the pics directory.
+	'''
 	def _getNewFileName(self):
 		counter = int( self._getSetting("counter") )
 		
@@ -104,7 +122,9 @@ class SciFiCam(object):
 
 		return os.path.join( self.dir, "pics", "{0}".format(counter) )
 
-	
+	'''
+	start() starts the camera.
+	'''
 	def start(self):
 		try:
 			self.buttonThread.start()
@@ -124,13 +144,18 @@ class SciFiCam(object):
 		except Exception as e:
 			self._issueMessage("Faield to start camera", level = 0, exception = e)
 
-
-	def addMode(self, mode):
+	'''
+	addMode() adds a Mode class to the list of modes.
+	'''
+	def addMode(self, Mode):
 		try:
-			self.modes.append(mode)
+			self.modes.append(Mode)
 		except Exception as e:
 			self._issueMessage("Faield to add mode", level = 0, exception = e)
-
+	
+	'''
+	setMode() renders a mode with the given index.
+	'''
 	def setMode(self, idx, *args, **kwargs):
 		self._issueMessage("Setting mode {0}".format(idx), level = 2)
 		try:
@@ -145,6 +170,9 @@ class SciFiCam(object):
 		except Exception as e:
 			self._issueMessage("Failed to set mode {0}".format(idx), level = 0, exception = e)
 	
+	'''
+	update() updates all UIElements of the active mode.
+	'''
 	def update(self):
 		try:
 			overlay = np.zeros( self.overlaySize, dtype=np.uint8)
@@ -153,9 +181,12 @@ class SciFiCam(object):
 
 			self.camera.remove_overlay(self.UIOverlay)
 			self.UIOverlay = self.camera.add_overlay( np.getbuffer(overlay), format = 'rgb', alpha = 255, layer = 1 )
-		except:
+		except Exception as e:
 			self._issueMessage("Failed to run update", level = 0, exception = e)
 
+	'''
+	setNextMode() renders next mode from the list.
+	'''
 	def setNextMode(self):
 		if len(self.modes) > 1:
 			index = 1
@@ -164,14 +195,20 @@ class SciFiCam(object):
 				if index == len(self.modes):
 					index = 1
 			self.setMode(index)
-
+	
+	'''
+	stop() stops the camera along with OwnCloudThread and ButtonThread
+	'''
 	def stop(self):
 		self._issueMessage("Stopping camera", level = 2)
 		self.buttonThread._stop_event.set()
 		if self.ocThread:
 			self.ocThread._stop_event.set()
 		self.camera.stop_preview()
-
+	
+	'''
+	restart() reboots the Pi
+	'''
 	def restart(self):
 		self._issueMessage("System reboot", level = 2)
 		self.stop()
@@ -180,7 +217,10 @@ class SciFiCam(object):
 		import subprocess
 		process = subprocess.Popen(command.split(), stdout=subprocess.PIPE)
 		output = process.communicate()[0]
-
+	
+	'''
+	capture() captures a picture and saves it to pics directory.
+	'''
 	def capture(self):
 		try:
 			self._issueMessage("Capturing picture", level = 2)
