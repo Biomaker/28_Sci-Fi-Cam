@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 import os
 import sys
 import traceback
@@ -242,18 +244,3 @@ class SciFiCam(object):
 			self.camera.remove_overlay(o)
 		except Exception as e:
 			self._issueMessage("Failed to capture an image", level = 0, exception = e)
-
-if __name__ == "__main__":
-	camera = SciFiCam()
-	camera.addMode(AutoMode)
-	camera.addMode(ManualMode)
-	camera.addMode(TimelapseMode)
-	camera.addMode(VideoCaptureMode)
-	camera.addMode(ShutDownMode)
-	camera.start()
-	try:
-		while True:
-			sleep(1)
-	finally:
-		camera.stop()
-		sys.exit()

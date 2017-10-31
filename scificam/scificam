@@ -1,0 +1,21 @@
+#!/usr/bin/python
+
+import sys
+from time import sleep
+
+from scificam import *
+
+camera = SciFiCam()
+camera.addMode(AutoMode)
+camera.addMode(ManualMode)
+camera.addMode(TimelapseMode)
+camera.addMode(VideoCaptureMode)
+camera.addMode(ShutDownMode)
+camera.start()
+
+try:
+	while True:
+		sleep(1)
+finally:
+	camera.stop()
+	sys.exit()
