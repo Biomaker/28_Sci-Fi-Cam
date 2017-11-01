@@ -34,5 +34,6 @@ setup(
 	classifiers = [],
 	install_requires = ['pyocclient', 'pillow==2.6.1', 'picamera', 'numpy==1.8.2'],
 	scripts = ['scificam/scificam'],
-	cmdclass={'install': SciFiCamInstall}
+	cmdclass={'install': SciFiCamInstall},
+	include_package_data=True
 )
