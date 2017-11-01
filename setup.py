@@ -29,7 +29,7 @@ setup(
 	author = 'Mihails Delmans',
 	author_email = 'm.delmans@gmail.com',
 	url = 'https://github.com/BioMakers/28_Sci-Fi-Cam', 
-	download_url = 'https://github.com/BioMakers/28_Sci-Fi-Cam/archive/0.1.tar.gz',
+	download_url = 'https://github.com/BioMakers/28_Sci-Fi-Cam/archive/0.1.zip',
 	keywords = ['Raspberry', 'camera'], 
 	classifiers = [],
 	install_requires = ['pyocclient', 'pillow==2.6.1', 'picamera', 'numpy==1.8.2'],
