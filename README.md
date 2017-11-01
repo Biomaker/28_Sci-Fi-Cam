@@ -48,14 +48,22 @@ SciFiCamera is an assembly of the three off-the shelf-components: Raspberry Pi 3
 
 1. Connect to Pi over ssh or attach a keyboard (you will need to open the housing to do so).
 2. Install SciFiCam using pip.
-	'sudo pip install scificam'
+	```
+	sudo pip install scificam
+	```
 3. You can now start the camera by typing
-	'scificam'
+	```
+	scificam
+	```
 4. You make scificam start after each reboot by editing the crontab file. Open it using
-	'crontab -e'
+	```
+	crontab -e
+	```
 	and add the following line
-	'@reboot scificam'
+	```
+	@reboot scificam
+	```
 
 ## License
 
-MIT
+GPLv3
