@@ -1,3 +1,8 @@
-ocLogin = ''
-ocPass = ''
-ocAddress = ''
+counter=0
+
+ocLogin=''
+
+ocAddress=''
+
+ocPass=''
+

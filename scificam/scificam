@@ -2,8 +2,21 @@
 
 import sys
 from time import sleep
+import subprocess
 
 from scificam import *
+
+
+
+print "Starting fbcp..."
+
+try:
+	subprocess.Popen(["fbcp"])
+except Exception as e:
+	print "Failed to start fbcp:\n{0}".format(e)
+	sys.exit()
+
+print "fbcp started succesully..."
 
 camera = SciFiCam()
 camera.addMode(AutoMode)
