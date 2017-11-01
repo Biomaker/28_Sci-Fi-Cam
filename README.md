@@ -10,7 +10,7 @@ The software is written in Python and exploits pycamera overlay system for creti
 
 Camera thread is responsible for communication to pycamera library and handling user interface. It acts as a Model in an MVC architecture. Camera has several Modes, which acte as Controllers; and each Mode is driven by UIElements, which act as View elements.
 
-Modes have the same meaning as modes on a digital cameras, exposing different aspects of camera settings. So far there are xxx Modes implemented:
+Modes have the same meaning as modes on a digital cameras, exposing different aspects of camera settings. So far there are four Modes implemented:
 
 * Automatic mode
 * Manual mode
