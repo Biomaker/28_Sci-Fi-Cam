@@ -2,6 +2,8 @@
 
 SciFiCam is a Raspberry Pi based camera assembly with a digital camera UI and syncronsation over Wi-Fi.
 
+![](/img/scifi.gif)
+
 ## Software
 
 The software is written in Python and exploits pycamera overlay system for creting a user interface. It consists of three main components that run on individual threads.
